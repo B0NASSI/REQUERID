@@ -1,0 +1,12 @@
+﻿- Além dos benefícios acidentários (B91–B94), o programa agora suporta
+  B31, B32, B36, B41, B42 e B46.
+
+- Os arquivos passaram a ser salvos com nome padronizado:
+    {nº}. Requerimento - Segurado(a) - {NOME} - NB - {últimos 3 dígitos} - Empresa - {EMPRESA}
+
+- Campos armazenados como número no Excel (NB, NIT, CPF, espécie)
+  chegavam com ".0" no documento gerado. Corrigido.
+
+- Texto do banner atualizado para "cumprimento de exigência".
+
+- Manual rápido atualizado com as novas espécies de benefício.

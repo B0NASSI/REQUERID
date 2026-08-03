@@ -1,0 +1,11 @@
+﻿- Botão "Suspender" na geração em lote: aparece ao lado da barra de
+  progresso enquanto o lote está sendo processado. Ao clicar, o
+  programa conclui o requerimento em andamento e interrompe os demais,
+  exibindo um resumo do que foi gerado até a interrupção.
+
+- Botão "Baixar planilha modelo" na aba "Gerar em lote (planilha)":
+  salva uma cópia da planilha em branco em qualquer pasta escolhida
+  pelo usuário, facilitando compartilhar o modelo com novos usuários.
+
+- Resultados exibidos em tempo real durante a geração em lote (antes,
+  a lista só aparecia ao final do processo).

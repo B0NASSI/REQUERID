@@ -1,0 +1,6 @@
+﻿- Na aba "Requerimento individual", o nome do arquivo gerado passa a
+  ser exibido em tempo real conforme os campos são preenchidos, antes
+  mesmo de clicar em "Gerar requerimento".
+
+- O instalador reduziu de 36 MB para aproximadamente 25 MB com a
+  remoção de dependências desnecessárias.

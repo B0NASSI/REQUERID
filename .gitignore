@@ -1,0 +1,16 @@
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+output/
+REQUERID - Instalador/
+installer/output/
+installer/release/
+dados/teste/
+_versoes_tmp/
+_update_staging/
+_update_backup/
+launcher_log.txt
+*.tmp

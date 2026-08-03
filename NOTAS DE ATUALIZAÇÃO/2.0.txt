@@ -1,0 +1,7 @@
+﻿- Tema e layout da interface reformulados. Inclusão da logo e das
+  cores do escritório.
+
+- Botão "Limpar campos": reseta o formulário sem fechar o programa.
+
+- Botão "Abrir pasta de salvamento": abre diretamente a pasta onde
+  os arquivos foram gerados.
