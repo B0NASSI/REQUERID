@@ -1,0 +1,17 @@
+Agora, precisamos alterar a padronização dos documentos salvos:
+
+Para WORD: 1. (conforme coluna "item" da planilha) Requerimento -  Segurada/Segurado (conforme gênero) - XXXXXXX (NOME SEGURADO) - NB - xxx (últimos 3 digitos do benefício) - Empresa - XXXX (primeiro nome da empresa - se tiver menos de 3 caractéres, o primeiro e o segundo nome da empresa)
+
+
+Para PDF: 1.1 (seguência do item da planilha - sempre x.1) Requerimento -  Segurada/Segurado (conforme gênero) - XXXXXXX (NOME SEGURADO) - NB - xxx (últimos 3 digitos do benefício) - Empresa - XXXX (primeiro nome da empresa - se tiver menos de 3 caractéres, o primeiro e o segundo nome da empresa)
+
+
+exemplo: 
+
+Para WORD: 1. Requerimento -  Segurada - FRANCINEIDE DA SILVA CORREA OLIVEIRA - NB - 068 - Empresa - AGILE
+
+Para PDF: 1.1 Requerimento -  Segurada - FRANCINEIDE DA SILVA CORREA OLIVEIRA - NB - 068 - Empresa - AGILE
+
+Para WORD: 2. Requerimento -  Segurado - JOSÉ DA SILVA - NB - 666 - Empresa - AGILE
+
+Para PDF: 2.1 Requerimento -  Segurado - JOSÉ DA SILVA - NB - 666 - Empresa - AGILE

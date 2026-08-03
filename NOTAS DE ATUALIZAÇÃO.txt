@@ -1,0 +1,67 @@
+REQUERID — Requerimento de GERID
+Notas de atualização
+
+
+VERSÃO 3.3  (julho/2026)
+
+- Botão "Cancelar" na geração em lote: aparece ao lado da barra de
+  progresso enquanto o lote está sendo processado. Ao clicar, o
+  programa conclui o requerimento em andamento e interrompe os demais,
+  exibindo um resumo do que foi gerado até a interrupção.
+
+- Botão "Baixar planilha modelo" na aba "Gerar em lote (planilha)":
+  salva uma cópia da planilha em branco em qualquer pasta escolhida
+  pelo usuário, facilitando compartilhar o modelo com novos usuários.
+
+
+VERSÃO 3.2  (julho/2026)
+
+- Na aba "Requerimento individual", o nome do arquivo gerado passa a
+  ser exibido em tempo real conforme os campos são preenchidos, antes
+  mesmo de clicar em "Gerar requerimento".
+
+- O instalador reduziu de 36 MB para aproximadamente 25 MB com a
+  remoção de dependências desnecessárias.
+
+
+VERSÃO 3.1  (julho/2026)
+
+- Campo "Nome da empresa no arquivo word e pdf" (opcional), disponível
+  em ambas as abas. O sistema identifica automaticamente o nome da
+  empresa na maioria dos casos — preencha somente se o resultado
+  automático não for satisfatório.
+  Exemplos:
+    "HONDA AUTOMOVEIS LTDA"  → automático: "HONDA"        (ok)
+    "PIRACANJUBA LATICINIOS" → automático: "PIRACANJUBA"  (ok)
+    "LOJAS COLOMBO S.A."     → automático: "LOJAS"        (preencher: LOJAS COLOMBO)
+    "BANCO DO BRASIL S.A."   → automático: "BANCO"        (preencher: BANCO DO BRASIL)
+
+- Altura da janela aumentada para acomodar o novo campo sem cortar
+  o conteúdo da aba "Requerimento individual".
+
+
+VERSÃO 3  (julho/2026)
+
+- Além dos benefícios acidentários (B91–B94), o programa agora suporta
+  B31, B32, B36, B41, B42 e B46.
+
+- Os arquivos passaram a ser salvos com nome padronizado:
+    {nº}. Requerimento - Segurado(a) - {NOME} - NB - {últimos 3 dígitos} - Empresa - {EMPRESA}
+
+- Campos armazenados como número no Excel (NB, NIT, CPF, espécie)
+  chegavam com ".0" no documento gerado. Corrigido.
+
+- Texto do banner atualizado para "cumprimento de exigência".
+
+- Manual rápido atualizado com as novas espécies de benefício.
+
+
+VERSÃO 2  (junho/2026)
+
+- Tema e layout da interface reformulados. Inclusão da logo e das
+  cores do escritório.
+
+- Botão "Limpar campos": reseta o formulário sem fechar o programa.
+
+- Botão "Abrir pasta de salvamento": abre diretamente a pasta onde
+  os arquivos foram gerados.
