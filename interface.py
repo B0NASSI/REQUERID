@@ -903,7 +903,7 @@ class Janela:
         if caminho_logo.exists():
             self._imagem_logo = _carregar_imagem_altura(caminho_logo, 24)
             tk.Label(rodape, image=self._imagem_logo, borderwidth=0, background=tema.COR_FUNDO).pack(side="left")
-        ttk.Label(rodape, text="versão 3.3", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
+        ttk.Label(rodape, text="versão 3.4", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
 
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=14, pady=(14, 0))
