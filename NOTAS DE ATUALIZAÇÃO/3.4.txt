@@ -1,1 +1,0 @@
-﻿- Versão de teste do sistema de atualização automática via GitHub.

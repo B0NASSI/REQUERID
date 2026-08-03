@@ -1,5 +1,5 @@
 #define MyAppName "REQUERID — Requerimento de GERID"
-#define MyAppVersion "3.4"
+#define MyAppVersion "3.3"
 #define MyAppPublisher "Rodriguez & Sousa Advogados Associados"
 #define MyAppExeName "REQUERID Launcher.exe"
 #define SourceDir "C:\Users\Pichau\Desktop\Petição Inicial\CODE\CLAUDE CODE\RequerimentoGERID\REQUERID - Instalador"
