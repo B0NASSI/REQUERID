@@ -88,7 +88,7 @@ class AbaIndividual:
         self.frame.columnconfigure(0, weight=1)
 
         cartao = ttk.Labelframe(self.frame, text=" Dados do requerimento ", padding=18, bootstyle="secondary")
-        cartao.grid(row=0, column=0, sticky="ew", pady=(0, 18))
+        cartao.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         cartao.columnconfigure(1, weight=1)
         self.entries = {}
 
@@ -186,7 +186,7 @@ class AbaIndividual:
         ).grid(row=linha, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         self.label_preview = ttk.Label(self.frame, text="", foreground="#666666", font=("Consolas", 8), wraplength=820)
-        self.label_preview.grid(row=1, column=0, sticky="w", pady=(6, 2))
+        self.label_preview.grid(row=1, column=0, sticky="w", pady=(0, 20))
 
         self.frame_progresso = ttk.Frame(self.frame)
         self.barra_progresso = ttk.Progressbar(self.frame_progresso, mode="indeterminate", bootstyle="secondary")
@@ -265,7 +265,7 @@ class AbaIndividual:
             emp_curta = "EMPRESA"
         nb_curto = _ultimos_digitos(nb) if nb else "NNN"
 
-        preview = f"1. Requerimento -  {tratamento} - {nome_seg} - NB - {nb_curto} - Empresa - {emp_curta}.docx"
+        preview = f"1. Requerimento - {tratamento} - {nome_seg} - NB - {nb_curto} - Empresa - {emp_curta}.docx"
         self.label_preview.configure(text=f"Arquivo: {preview}")
 
     def _escolher_saida(self):
@@ -417,7 +417,7 @@ class AbaExigencia:
         self._item_carregado = 1
 
         cartao = ttk.Labelframe(self.frame, text=" Cumprimento de exigência ", padding=18, bootstyle="secondary")
-        cartao.grid(row=0, column=0, sticky="ew", pady=(0, 18))
+        cartao.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         cartao.columnconfigure(1, weight=1)
         self.entries = {}
 
@@ -543,7 +543,7 @@ class AbaExigencia:
         ).grid(row=linha, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         self.label_preview = ttk.Label(self.frame, text="", foreground="#666666", font=("Consolas", 8), wraplength=820)
-        self.label_preview.grid(row=1, column=0, sticky="w", pady=(6, 2))
+        self.label_preview.grid(row=1, column=0, sticky="w", pady=(0, 20))
 
         self.frame_progresso = ttk.Frame(self.frame)
         self.barra_progresso = ttk.Progressbar(self.frame_progresso, mode="indeterminate", bootstyle="secondary")
@@ -705,7 +705,7 @@ class AbaExigencia:
         nb_curto = _ultimos_digitos(nb) if nb else "NNN"
 
         preview = (
-            f"{self._item_carregado}{self.SUFIXO_ITEM} {self.PREFIXO_ARQUIVO} -  {tratamento} - {nome_seg} "
+            f"{self._item_carregado}{self.SUFIXO_ITEM} {self.PREFIXO_ARQUIVO} - {tratamento} - {nome_seg} "
             f"- NB - {nb_curto} - Empresa - {emp_curta}.docx"
         )
         self.label_preview.configure(text=f"Arquivo: {preview}")
@@ -1433,7 +1433,7 @@ class Janela:
         if caminho_logo.exists():
             self._imagem_logo = _carregar_imagem_altura(caminho_logo, 24)
             tk.Label(rodape, image=self._imagem_logo, borderwidth=0, background=tema.COR_FUNDO).pack(side="left")
-        ttk.Label(rodape, text="versão 3.4", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
+        ttk.Label(rodape, text="versão 3.5", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
 
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=14, pady=(14, 0))

@@ -276,7 +276,7 @@ def _nome_base_documento(
     else:
         empresa_curta = _primeiro_nome_empresa(contexto["empresa"]).upper()
     segurado = _dois_primeiros_nomes(contexto["segurado"]).upper()
-    return f"{prefixo} -  {tratamento} - {segurado} - NB - {nb_curto} - Empresa - {empresa_curta}"
+    return f"{prefixo} - {tratamento} - {segurado} - NB - {nb_curto} - Empresa - {empresa_curta}"
 
 
 def nome_arquivo_docx(

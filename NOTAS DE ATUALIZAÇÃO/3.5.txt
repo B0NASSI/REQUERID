@@ -1,0 +1,6 @@
+- Corrigido espaço duplo no nome dos arquivos gerados (aparecia como
+  "Requerimento -  Segurado", com dois espaços depois do traço) — vale
+  para lote, individual e cumprimento de exigência.
+
+- Ajuste visual: o nome do arquivo mostrado na tela (antes de gerar)
+  ficava colado nos botões; agora fica mais próximo do formulário.
