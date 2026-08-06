@@ -11,6 +11,7 @@ icone_datas = [
 # ---------------------------------------------------------------------------
 app_datas = list(icone_datas) + [
     ('modelos/template.docx', 'modelos'),
+    ('modelos/template_exigencia.docx', 'modelos'),
     ('dados/SOLICITAÇÕES GERID.xlsx', 'dados'),
     ('NOTAS DE ATUALIZAÇÃO', 'NOTAS DE ATUALIZAÇÃO'),
 ]

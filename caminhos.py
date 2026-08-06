@@ -25,6 +25,14 @@ def pasta_executavel() -> Path:
 
 
 TEMPLATE_PADRAO = pasta_recursos() / "modelos" / "template.docx"
+TEMPLATE_EXIGENCIA_PADRAO = pasta_recursos() / "modelos" / "template_exigencia.docx"
 PLANILHA_MODELO = pasta_recursos() / "dados" / "SOLICITAÇÕES GERID.xlsx"
 SAIDA_PADRAO = pasta_executavel() / "output"
 PLANILHA_LOTE_PADRAO = pasta_executavel() / "dados" / "SOLICITAÇÕES GERID.xlsx"
+
+# Dados de cada requerimento gerado (empresa, segurado, cpf, nit, especie, nb...),
+# um arquivo por NB, para a aba de Cumprimento de Exigência reaproveitar sem
+# redigitar. Fica ao lado do .exe (não dentro do _MEIPASS) pelo mesmo motivo do
+# SAIDA_PADRAO, e sobrevive às atualizações porque o launcher só mexe nos
+# arquivos que vêm dentro do pacote atualizado.
+PASTA_DADOS_BENEFICIOS_PADRAO = pasta_executavel() / "dados_beneficios"

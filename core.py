@@ -6,13 +6,16 @@ montagem do contexto para o docxtpl, sanitização do nome do arquivo e
 renderização do .docx final.
 """
 
+import json
 import re
 from datetime import date, datetime
 from pathlib import Path
 
+from docx import Document
 from docxtpl import DocxTemplate
 from jinja2 import Environment, StrictUndefined
 from jinja2.exceptions import UndefinedError
+from pypdf import PdfReader
 
 from nomes_genero import inferir_genero
 
@@ -263,7 +266,9 @@ def _dois_primeiros_nomes(nome: str) -> str:
     return " ".join(palavras[:2])
 
 
-def _nome_base_documento(contexto: dict, empresa_arquivo_override: str | None = None) -> str:
+def _nome_base_documento(
+    contexto: dict, empresa_arquivo_override: str | None = None, prefixo: str = "Requerimento"
+) -> str:
     tratamento = "Segurado" if contexto["sexo"] == "M" else "Segurada"
     nb_curto = _ultimos_digitos(contexto["nb"])
     if empresa_arquivo_override and empresa_arquivo_override.strip():
@@ -271,17 +276,207 @@ def _nome_base_documento(contexto: dict, empresa_arquivo_override: str | None = 
     else:
         empresa_curta = _primeiro_nome_empresa(contexto["empresa"]).upper()
     segurado = _dois_primeiros_nomes(contexto["segurado"]).upper()
-    return f"Requerimento -  {tratamento} - {segurado} - NB - {nb_curto} - Empresa - {empresa_curta}"
+    return f"{prefixo} -  {tratamento} - {segurado} - NB - {nb_curto} - Empresa - {empresa_curta}"
 
 
-def nome_arquivo_docx(contexto: dict, item, empresa_arquivo_override: str | None = None) -> str:
-    base = sanitizar_nome_arquivo_windows(f"{item}. {_nome_base_documento(contexto, empresa_arquivo_override)}")
+def nome_arquivo_docx(
+    contexto: dict, item, empresa_arquivo_override: str | None = None, prefixo: str = "Requerimento",
+    sufixo_item: str = ".",
+) -> str:
+    base = sanitizar_nome_arquivo_windows(
+        f"{item}{sufixo_item} {_nome_base_documento(contexto, empresa_arquivo_override, prefixo)}"
+    )
     return f"{base}.docx"
 
 
-def nome_arquivo_pdf(contexto: dict, item, empresa_arquivo_override: str | None = None) -> str:
-    base = sanitizar_nome_arquivo_windows(f"{item}.1 {_nome_base_documento(contexto, empresa_arquivo_override)}")
+def nome_arquivo_pdf(
+    contexto: dict, item, empresa_arquivo_override: str | None = None, prefixo: str = "Requerimento",
+    sufixo_item: str = ".1",
+) -> str:
+    base = sanitizar_nome_arquivo_windows(
+        f"{item}{sufixo_item} {_nome_base_documento(contexto, empresa_arquivo_override, prefixo)}"
+    )
     return f"{base}.pdf"
+
+
+# Campos de identificação do benefício persistidos por NB (um .json por
+# benefício em PASTA_DADOS_BENEFICIOS_PADRAO), para a aba de Cumprimento de
+# Exigência reaproveitar sem redigitar. Não inclui campos derivados da data
+# do requerimento (data_extenso, tratamento_cap, inscrito, empregado), que
+# são recalculados a cada geração a partir de sexo/nb/etc.
+CAMPOS_DADOS_BENEFICIO = ["empresa", "cnpj", "segurado", "sexo", "cpf", "nit", "especie", "nb"]
+
+
+def _chave_nb(nb: str) -> str:
+    """Nome de arquivo estável para um NB: só os dígitos (NB é sempre
+    numérico). Se por algum motivo não sobrar dígito nenhum, cai para o
+    texto sanitizado como está, para não gerar um nome de arquivo vazio."""
+    digitos = re.sub(r"\D", "", str(nb))
+    return digitos or sanitizar_nome_arquivo_windows(str(nb))
+
+
+def salvar_dados_beneficio(contexto: dict, pasta_dados: Path, item=None, empresa_arquivo: str | None = None) -> None:
+    """`item` é o número do requerimento original (o mesmo usado no nome do
+    arquivo, ex.: 10, 5, 21) - salvo junto para a aba de Cumprimento de
+    Exigência montar o nome do arquivo (ex.: "10.3 Cumprimento de
+    Exigência...") sem precisar que o usuário redigite o número.
+
+    `empresa_arquivo` é o nome abreviado da empresa como consta no nome do
+    arquivo do requerimento original (a "Empresa - X" do nome do arquivo) -
+    só precisa ser passado quando o usuário digitou um valor manual (o campo
+    "nome da empresa no arquivo" é opcional). Se None/vazio nesta chamada,
+    preserva o que já estava salvo (não apaga um valor salvo anteriormente
+    só porque esta geração em particular não informou um override)."""
+    pasta_dados.mkdir(parents=True, exist_ok=True)
+    destino = pasta_dados / f"{_chave_nb(contexto['nb'])}.json"
+
+    anterior = {}
+    if destino.is_file():
+        try:
+            anterior = json.loads(destino.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            anterior = {}
+
+    dados = {campo: contexto[campo] for campo in CAMPOS_DADOS_BENEFICIO}
+    dados["item"] = item if item is not None else anterior.get("item", 1)
+    empresa_arquivo_final = empresa_arquivo or anterior.get("empresa_arquivo")
+    if empresa_arquivo_final:
+        dados["empresa_arquivo"] = empresa_arquivo_final
+    dados["atualizado_em"] = datetime.now().isoformat(timespec="seconds")
+    destino.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def carregar_dados_beneficio(nb: str, pasta_dados: Path) -> dict | None:
+    """Devolve os dados salvos para o NB (dict pronto para uso como `linha`
+    de montar_contexto, mais as chaves "item" e "empresa_arquivo"), ou None
+    se nunca foi gerado nenhum requerimento para esse NB nesta instalação."""
+    caminho = pasta_dados / f"{_chave_nb(nb)}.json"
+    if not caminho.is_file():
+        return None
+    try:
+        dados = json.loads(caminho.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    resultado = {campo: dados.get(campo, "") for campo in CAMPOS_DADOS_BENEFICIO}
+    resultado["item"] = dados.get("item") or 1
+    resultado["empresa_arquivo"] = dados.get("empresa_arquivo") or ""
+    return resultado
+
+
+# Padrão do corpo do texto do requerimento (mesma redação em template.docx e
+# template_exigencia.docx, parágrafos 5 e 35) usado para recuperar os dados
+# originais de um .docx/.pdf já gerado quando o NB não está salvo em
+# PASTA_DADOS_BENEFICIOS_PADRAO (ex.: gerado antes dessa funcionalidade
+# existir, ou em outra máquina que ainda não compartilhou os dados).
+#
+# Os campos numéricos aceitam espaços internos ([0-9./\- ]) porque o texto
+# extraído de PDF (via pypdf) às vezes traz um espaço "fantasma" colado a um
+# hífen ou vírgula em textos justificados pelo Word (ex.: "077.563.609 -66")
+# - removido depois via _limpar_numero, não faz parte do dado real.
+_RE_EMPRESA_CNPJ = re.compile(
+    r"para representar a empresa (?P<empresa>.+?), pessoa jurídica de direito privado, "
+    r"inscrita no CNPJ sob o nº (?P<cnpj>[0-9./\- ]+),"
+)
+
+_RE_DADOS_SEGURADO = re.compile(
+    r"(?P<tratamento>O segurado|A segurada) (?P<segurado>.+?), "
+    r"(?:inscrito|inscrita) no CPF nº (?P<cpf>[0-9./\- ]+) e sob o NIT nº (?P<nit>[0-9./\- ]+), "
+    r"era (?:empregado|empregada) da empresa representada quando lhe foi concedido o "
+    r"benefício de .+?, da espécie (?P<especie>B\s?\d\s?\d), nº (?P<nb>[0-9./\- ]+),"
+)
+
+
+def _dados_do_nome_arquivo(nome_arquivo: str) -> tuple:
+    """Extrai do nome do arquivo (não do conteúdo) o número do item e o nome
+    abreviado da empresa usados no documento original, para o novo arquivo
+    seguir a mesma numeração/abreviação. O primeiro token (antes do primeiro
+    espaço) é sempre "{item}" + um sufixo de numeração (".", ".1" no pdf do
+    requerimento, ".3" na exigência) - removido pelo regex abaixo, que casa
+    exatamente o que nome_arquivo_docx/pdf acrescentaram no final do token.
+    Ex.: "21.3 Cumprimento de Exigência -  Segurada - ÉRICA - NB - 234 -
+    Empresa - UNIÃO.pdf" → item=21, empresa_arquivo="UNIÃO"."""
+    stem = Path(nome_arquivo).stem
+    primeiro_token, _, resto = stem.partition(" ")
+    item_texto = re.sub(r"\.\d*$", "", primeiro_token).strip()
+    item = int(item_texto) if item_texto.isdigit() else (item_texto or 1)
+    empresa_arquivo = resto.rsplit("Empresa - ", 1)[-1].strip() if "Empresa - " in resto else None
+    return item, empresa_arquivo
+
+
+def _normalizar_espacos(texto: str) -> str:
+    """Colapsa qualquer sequência de espaços/quebras de linha em um único
+    espaço - necessário porque o pypdf preserva as quebras de linha do
+    Word (o texto de um mesmo parágrafo do template vem fatiado em várias
+    linhas), enquanto o python-docx já devolve cada parágrafo inteiro.
+
+    Também remove espaço logo antes de vírgula/ponto/ponto-e-vírgula/dois-
+    pontos (ex.: "da espécie B36 , nº" → "da espécie B36, nº") - artefato do
+    texto justificado que o pypdf às vezes introduz e que, sem essa limpeza,
+    quebra os regexes de extração porque eles esperam a pontuação colada
+    direto no fim do trecho anterior."""
+    texto = re.sub(r"\s+", " ", texto)
+    return re.sub(r"\s+([,.;:])", r"\1", texto)
+
+
+def _limpar_numero(valor: str) -> str:
+    return re.sub(r"\s+", "", valor).strip()
+
+
+def _ler_texto_docx(caminho: Path) -> str:
+    doc = Document(str(caminho))
+    return "\n".join(p.text for p in doc.paragraphs)
+
+
+def _ler_texto_pdf(caminho: Path) -> str:
+    leitor = PdfReader(str(caminho))
+    return "\n".join(pagina.extract_text() or "" for pagina in leitor.pages)
+
+
+def extrair_dados_requerimento(caminho: Path) -> dict:
+    """Lê um .docx ou .pdf de requerimento (ou cumprimento de exigência) já
+    gerado por este programa e recupera os dados originais (empresa, cnpj,
+    segurado, sexo, cpf, nit, especie, nb) a partir do texto do documento,
+    além do número do item e do nome abreviado da empresa a partir do nome
+    do arquivo. Usado pela aba de Cumprimento de Exigência quando o NB não
+    está salvo em PASTA_DADOS_BENEFICIOS_PADRAO. Lança ErroValidacao se o
+    formato não for suportado ou o documento não for reconhecido (editado
+    manualmente, PDF escaneado sem texto, ou não gerado por este programa)."""
+    if not caminho.is_file():
+        raise ErroValidacao(f"Arquivo não encontrado: {caminho}")
+
+    sufixo = caminho.suffix.lower()
+    if sufixo == ".docx":
+        texto_bruto = _ler_texto_docx(caminho)
+    elif sufixo == ".pdf":
+        texto_bruto = _ler_texto_pdf(caminho)
+    else:
+        raise ErroValidacao(f"Formato não suportado ({sufixo or 'sem extensão'}). Selecione um .docx ou .pdf.")
+
+    texto = _normalizar_espacos(texto_bruto)
+
+    match_empresa = _RE_EMPRESA_CNPJ.search(texto)
+    match_segurado = _RE_DADOS_SEGURADO.search(texto)
+    if not match_empresa or not match_segurado:
+        raise ErroValidacao(
+            "Não foi possível reconhecer os dados nesse documento (pode ter sido editado "
+            "manualmente, ser um PDF escaneado sem texto, ou não ter sido gerado por este "
+            "programa). Preencha os campos manualmente."
+        )
+
+    item, empresa_arquivo = _dados_do_nome_arquivo(caminho.name)
+
+    return {
+        "empresa": match_empresa.group("empresa").strip(),
+        "cnpj": _limpar_numero(match_empresa.group("cnpj")),
+        "segurado": match_segurado.group("segurado").strip(),
+        "sexo": "M" if match_segurado.group("tratamento") == "O segurado" else "F",
+        "cpf": _limpar_numero(match_segurado.group("cpf")),
+        "nit": _limpar_numero(match_segurado.group("nit")),
+        "especie": _limpar_numero(match_segurado.group("especie")),
+        "nb": _limpar_numero(match_segurado.group("nb")),
+        "item": item,
+        "empresa_arquivo": empresa_arquivo,
+    }
 
 
 def renderizar(contexto: dict, template_path: Path, destino: Path) -> None:
@@ -302,9 +497,11 @@ def calcular_destino(
     cnpj_override: str | None = None,
     item=1,
     empresa_arquivo_override: str | None = None,
+    prefixo_arquivo: str = "Requerimento",
+    sufixo_item: str = ".",
 ) -> Path:
     contexto = montar_contexto(linha, data_override, cnpj_override)
-    return pasta_saida / nome_arquivo_docx(contexto, item, empresa_arquivo_override)
+    return pasta_saida / nome_arquivo_docx(contexto, item, empresa_arquivo_override, prefixo_arquivo, sufixo_item)
 
 
 def calcular_destino_pdf(
@@ -314,9 +511,11 @@ def calcular_destino_pdf(
     cnpj_override: str | None = None,
     item=1,
     empresa_arquivo_override: str | None = None,
+    prefixo_arquivo: str = "Requerimento",
+    sufixo_item: str = ".1",
 ) -> Path:
     contexto = montar_contexto(linha, data_override, cnpj_override)
-    return pasta_saida / nome_arquivo_pdf(contexto, item, empresa_arquivo_override)
+    return pasta_saida / nome_arquivo_pdf(contexto, item, empresa_arquivo_override, prefixo_arquivo, sufixo_item)
 
 
 def gerar_arquivo(
@@ -327,8 +526,13 @@ def gerar_arquivo(
     cnpj_override: str | None = None,
     item=1,
     empresa_arquivo_override: str | None = None,
+    prefixo_arquivo: str = "Requerimento",
+    pasta_dados_beneficios: Path | None = None,
+    sufixo_item: str = ".",
 ) -> Path:
     contexto = montar_contexto(linha, data_override, cnpj_override)
-    destino = pasta_saida / nome_arquivo_docx(contexto, item, empresa_arquivo_override)
+    destino = pasta_saida / nome_arquivo_docx(contexto, item, empresa_arquivo_override, prefixo_arquivo, sufixo_item)
     renderizar(contexto, template_path, destino)
+    if pasta_dados_beneficios is not None:
+        salvar_dados_beneficio(contexto, pasta_dados_beneficios, item=item, empresa_arquivo=empresa_arquivo_override)
     return destino

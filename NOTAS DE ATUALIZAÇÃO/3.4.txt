@@ -1,0 +1,27 @@
+- Nova aba "Cumprimento de exigência": para quando o INSS abre uma
+  diligência pedindo procuração ou outros documentos. Digite o NB e
+  clique em "Buscar dados salvos" para preencher automaticamente
+  empresa, segurado, CPF, NIT e espécie a partir do requerimento já
+  gerado para aquele benefício — sem redigitar nada.
+
+- Botão "Carregar requerimento": quando o NB ainda não tem histórico
+  salvo (ex.: requerimento gerado antes dessa atualização, ou em outra
+  máquina), lê os dados direto de um .docx ou .pdf já gerado. Também é
+  possível simplesmente arrastar o arquivo até a janela do REQUERID.
+
+- O nome do arquivo do cumprimento de exigência acompanha o número do
+  requerimento original (ex.: requerimento "10. Requerimento..." gera
+  "10.3 Cumprimento de Exigência...").
+
+- Botão "Abrir PDF gerado" nas abas "Requerimento individual" e
+  "Cumprimento de exigência", ao lado de "Abrir pasta de salvamento".
+
+- A janela principal agora pode ser redimensionada.
+
+- A pasta de salvamento passou a ser obrigatória: gerar sem escolher
+  uma pasta agora avisa e não salva nada (antes, caía silenciosamente
+  numa pasta padrão).
+
+- Corrigida a leitura de alguns PDFs que falhava com "não foi possível
+  reconhecer os dados nesse documento", causada por um espaço extra que
+  o texto justificado do Word às vezes insere antes de pontuação.
