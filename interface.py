@@ -1,7 +1,6 @@
-import datetime
+import logging
 import os
 import threading
-import traceback
 import tkinter as tk
 from datetime import date
 from pathlib import Path
@@ -15,26 +14,25 @@ from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from ttkbootstrap.widgets.scrolled import ScrolledText
 
+import log_setup
 import tema
 import visual
 from caminhos import (PASTA_DADOS_BENEFICIOS_PADRAO, PLANILHA_LOTE_PADRAO, PLANILHA_MODELO, SAIDA_PADRAO,
                       TEMPLATE_EXIGENCIA_PADRAO, TEMPLATE_PADRAO, pasta_executavel, pasta_recursos)
 
 NOME_PASTA_NOTAS = "NOTAS DE ATUALIZAÇÃO"
-CAMINHO_LOG = pasta_executavel() / "requerid_log.txt"
+
+log_setup.configurar_logging("requerid.log", pasta_executavel())
+logger = logging.getLogger(__name__)
+CAMINHO_LOG = pasta_executavel() / "logs" / "requerid.log"
 
 
 def registrar_erro(contexto: str, exc: BaseException) -> None:
-    """Grava contexto + traceback completo em requerid_log.txt, ao lado do
-    .exe (mesmo padrão do launcher_log.txt do launcher.py) - pra dar pra
-    diagnosticar um erro reportado pelo usuário sem precisar reproduzir na
-    hora nem pedir o arquivo problemático de novo."""
-    try:
-        with open(CAMINHO_LOG, "a", encoding="utf-8") as f:
-            f.write(f"\n[{datetime.datetime.now().isoformat()}] {contexto}\n")
-            f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
-    except OSError:
-        pass
+    """Grava contexto + traceback completo no log rotativo (logs/requerid.log,
+    ao lado do .exe) - pra dar pra diagnosticar um erro reportado pelo
+    usuário sem precisar reproduzir na hora nem pedir o arquivo problemático
+    de novo."""
+    logger.error(contexto, exc_info=exc)
 
 
 def _versao_para_ordenacao(nome_sem_extensao: str):
@@ -394,6 +392,11 @@ class AbaIndividual:
                     destino_pdf_gerado = destino_pdf
                 except ConversorPDFIndisponivel as exc:
                     mensagem += f"\n\nAviso: PDF não foi gerado ({exc})"
+
+            logger.info(
+                "Requerimento gerado: %s (nb=%s, empresa=%s, pdf=%s)",
+                destino, linha.get("nb"), linha.get("empresa"), destino_pdf_gerado,
+            )
         finally:
             pythoncom.CoUninitialize()
 
@@ -660,6 +663,8 @@ class AbaExigencia:
             )
             return
 
+        logger.info("Dados carregados de %s (nb=%s)", caminho, dados.get("nb"))
+
         self.entry_nb.delete(0, "end")
         self.entry_nb.insert(0, dados["nb"])
         for chave in ("empresa", "cnpj", "segurado", "cpf", "nit"):
@@ -859,6 +864,11 @@ class AbaExigencia:
                     destino_pdf_gerado = destino_pdf
                 except ConversorPDFIndisponivel as exc:
                     mensagem += f"\n\nAviso: PDF não foi gerado ({exc})"
+
+            logger.info(
+                "Cumprimento de exigência gerado: %s (nb=%s, empresa=%s, pdf=%s)",
+                destino, linha.get("nb"), linha.get("empresa"), destino_pdf_gerado,
+            )
         finally:
             pythoncom.CoUninitialize()
 
@@ -1440,11 +1450,9 @@ DICAS
 class Janela:
     def __init__(self, root, nome_app: str, descricao_app: str):
         self.root = root
-        # Rede de segurança: qualquer exceção não tratada dentro de um
-        # callback do Tkinter (clique de botão, digitação num campo etc.)
-        # passa por aqui em vez de só imprimir no console (invisível no
-        # .exe empacotado, sem console) e travar/fechar o programa.
-        root.report_callback_exception = self._excecao_nao_tratada
+        # root.report_callback_exception (rede de segurança para exceção não
+        # tratada num callback do Tkinter) é ligado em main.py, onde `root`
+        # é criado.
 
         self._montar_banner(root, nome_app, descricao_app)
 
@@ -1464,7 +1472,7 @@ class Janela:
         if caminho_logo.exists():
             self._imagem_logo = _carregar_imagem_altura(caminho_logo, 24)
             tk.Label(rodape, image=self._imagem_logo, borderwidth=0, background=tema.COR_FUNDO).pack(side="left")
-        ttk.Label(rodape, text="versão 3.7", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
+        ttk.Label(rodape, text="versão 3.8", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
 
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=14, pady=(14, 0))
@@ -1518,17 +1526,6 @@ class Janela:
                 return "refuse"
 
         root.dnd_bind("<<Drop>>", _ao_soltar_arquivos)
-
-    def _excecao_nao_tratada(self, exc_type, exc_value, exc_tb) -> None:
-        registrar_erro("Erro não tratado numa ação da interface", exc_value)
-        try:
-            messagebox.showerror(
-                "Erro inesperado",
-                f"Ocorreu um erro inesperado:\n\n{exc_value}\n\nDetalhes salvos em:\n{CAMINHO_LOG}",
-                parent=self.root,
-            )
-        except Exception:
-            pass  # não deixa um erro ao mostrar o erro derrubar o programa
 
     def _montar_banner(self, root, nome_app: str, descricao_app: str) -> None:
         self._nome_app = nome_app

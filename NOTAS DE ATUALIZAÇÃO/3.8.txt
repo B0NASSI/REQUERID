@@ -1,0 +1,4 @@
+- Sistema de log reformulado: agora fica em "logs/requerid.log", ao lado
+  do programa, com rotação automática (não cresce sem limite) e passa a
+  registrar também as gerações concluídas com sucesso, não só os erros
+  — facilita bastante o diagnóstico se algo der errado.

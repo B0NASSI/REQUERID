@@ -1,19 +1,27 @@
 import ctypes
 import ctypes.wintypes
+import logging
 import threading
 import tkinter as tk
 from tkinter import messagebox
 
 import ttkbootstrap as ttk
 
+import log_setup
 import tema
-from caminhos import pasta_recursos
+from caminhos import pasta_executavel, pasta_recursos
 from interface import ALTURA_JANELA, LARGURA_JANELA, Janela
 
 NOME_APP = "REQUERID - Requerimento de GERID"
 DESCRICAO_APP = "Preenche automaticamente o requerimento administrativo e o cumprimento de exigência"
 
 SPI_GETWORKAREA = 0x0030
+
+# interface.py já chama isso na importação acima (mesmo arquivo de log,
+# logs/requerid.log); chamar de novo aqui é barato e idempotente - deixa
+# main.py independente dessa ordem de import por acidente.
+log_setup.configurar_logging("requerid.log", pasta_executavel())
+logger = logging.getLogger(__name__)
 
 
 def _area_util_tela() -> tuple[int, int]:
@@ -73,20 +81,46 @@ def _avisar_se_desatualizado(root) -> None:
     threading.Thread(target=_checar, daemon=True).start()
 
 
+def _tratar_erro_callback(root):
+    """Rede de segurança: qualquer exceção não tratada dentro de um callback
+    do Tkinter (clique de botão, digitação num campo etc.) passa por aqui em
+    vez de só imprimir no console (invisível no .exe empacotado, sem
+    console) e travar/fechar o programa."""
+    def _tratar(exc_type, exc_value, exc_tb):
+        logger.error("Erro não tratado numa ação da interface", exc_info=(exc_type, exc_value, exc_tb))
+        try:
+            messagebox.showerror(
+                "Erro inesperado",
+                f"Ocorreu um erro inesperado:\n\n{exc_value}\n\n"
+                f"Detalhes salvos em:\n{pasta_executavel() / 'logs' / 'requerid.log'}",
+                parent=root,
+            )
+        except Exception:
+            pass  # não deixa um erro ao mostrar o erro derrubar o programa
+    return _tratar
+
+
 if __name__ == "__main__":
+    logger.info("REQUERID iniciado.")
     root = ttk.Window(themename="litera", iconphoto=None)
     root.title(NOME_APP)
     root.resizable(True, True)
     # a largura mínima é definida pela linha do NB na aba de Exigência (campo
     # + botões "Buscar dados salvos" e "Carregar requerimento" lado a lado)
     root.minsize(860, 820)
+    root.report_callback_exception = _tratar_erro_callback(root)
     tema.aplicar(root)
     try:
         root.iconbitmap(str(pasta_recursos() / "GERID LOGO.ico"))
     except tk.TclError:
         pass
 
-    janela = Janela(root, NOME_APP, DESCRICAO_APP)  # mantém referência viva (banner/logo dependem disso)
+    try:
+        janela = Janela(root, NOME_APP, DESCRICAO_APP)  # mantém referência viva (banner/logo dependem disso)
+    except Exception:
+        logger.exception("Falha ao iniciar o aplicativo")
+        raise
     _centralizar(root, LARGURA_JANELA, ALTURA_JANELA)
     _avisar_se_desatualizado(root)
     root.mainloop()
+    logger.info("REQUERID encerrado.")

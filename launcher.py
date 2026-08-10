@@ -20,6 +20,7 @@ Fluxo:
      - abre o REQUERID.exe atualizado e fecha o launcher
   5. Qualquer falha depois de começar a aplicar -> restaura a partir dos backups
 """
+import logging
 import os
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ from PIL import ImageTk
 from ttkbootstrap.constants import BOTH, X
 from tkinter import messagebox
 
+import log_setup
 import tema
 import visual
 
@@ -95,6 +97,9 @@ APP_INTERNAL = BASE_DIR / "_internal"
 STAGING_DIR  = BASE_DIR / "_update_staging"
 BACKUP_DIR   = BASE_DIR / "_update_backup"
 VERSION_FILE = BASE_DIR / "versao.txt"
+
+log_setup.configurar_logging("launcher.log", BASE_DIR)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -265,14 +270,7 @@ def apply_update(zip_path: Path, new_version: str):
 
 
 def log_error(context: str, exc: Exception):
-    import datetime, traceback
-    log_path = BASE_DIR / "launcher_log.txt"
-    try:
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"\n[{datetime.datetime.now().isoformat()}] {context}\n")
-            f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
-    except OSError:
-        pass
+    logger.error(context, exc_info=exc)
 
 
 def launch_app():
@@ -381,6 +379,7 @@ class UpdaterUI:
             )
             self.root.after(0, self.set_status, "Fechando o REQUERID e aplicando a atualização...")
             apply_update(tmp_path, self.release["tag_name"])
+            logger.info("Atualização aplicada com sucesso: %s", self.release["tag_name"])
             self.root.after(0, self.finish, True, "")
         except Exception as exc:
             log_error("Falha ao baixar/aplicar atualização", exc)
@@ -399,17 +398,21 @@ class UpdaterUI:
 # Main
 # ---------------------------------------------------------------------------
 def main():
+    logger.info("Launcher iniciado.")
     local_version = read_local_version()
     release = get_latest_release()
 
     if release is None:
+        logger.info("Sem release disponível; abrindo versão instalada (%s).", local_version)
         launch_app()
         return
 
     if not is_newer(release["tag_name"], local_version):
+        logger.info("Já na versão mais recente (%s); abrindo.", local_version)
         launch_app()
         return
 
+    logger.info("Atualização encontrada: %s -> %s", local_version, release["tag_name"])
     ui = UpdaterUI(local_version, release["tag_name"], release)
     ui.run()
 
