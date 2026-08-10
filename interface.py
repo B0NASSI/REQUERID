@@ -1,5 +1,7 @@
+import datetime
 import os
 import threading
+import traceback
 import tkinter as tk
 from datetime import date
 from pathlib import Path
@@ -9,16 +11,30 @@ import shutil
 
 import pythoncom
 import ttkbootstrap as ttk
-import windnd
 from PIL import Image, ImageTk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from ttkbootstrap.widgets.scrolled import ScrolledText
 
 import tema
 import visual
 from caminhos import (PASTA_DADOS_BENEFICIOS_PADRAO, PLANILHA_LOTE_PADRAO, PLANILHA_MODELO, SAIDA_PADRAO,
-                      TEMPLATE_EXIGENCIA_PADRAO, TEMPLATE_PADRAO, pasta_recursos)
+                      TEMPLATE_EXIGENCIA_PADRAO, TEMPLATE_PADRAO, pasta_executavel, pasta_recursos)
 
 NOME_PASTA_NOTAS = "NOTAS DE ATUALIZAÇÃO"
+CAMINHO_LOG = pasta_executavel() / "requerid_log.txt"
+
+
+def registrar_erro(contexto: str, exc: BaseException) -> None:
+    """Grava contexto + traceback completo em requerid_log.txt, ao lado do
+    .exe (mesmo padrão do launcher_log.txt do launcher.py) - pra dar pra
+    diagnosticar um erro reportado pelo usuário sem precisar reproduzir na
+    hora nem pedir o arquivo problemático de novo."""
+    try:
+        with open(CAMINHO_LOG, "a", encoding="utf-8") as f:
+            f.write(f"\n[{datetime.datetime.now().isoformat()}] {contexto}\n")
+            f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+    except OSError:
+        pass
 
 
 def _versao_para_ordenacao(nome_sem_extensao: str):
@@ -363,6 +379,7 @@ class AbaIndividual:
                 self.frame.after(0, self._gerar_falhou, "Aviso", str(exc), messagebox.showwarning)
                 return
             except Exception as exc:
+                registrar_erro("Gerar - falha inesperada", exc)
                 self.frame.after(0, self._gerar_falhou, "Erro ao gerar", str(exc), messagebox.showerror)
                 return
 
@@ -627,12 +644,20 @@ class AbaExigencia:
         vez de exigir preenchimento manual. Também grava o resultado em
         PASTA_DADOS_BENEFICIOS_PADRAO, para não precisar carregar de novo.
         Usado tanto pelo botão "Carregar requerimento" quanto ao soltar um
-        arquivo arrastado na janela (ver windnd.hook_dropfiles em Janela)."""
+        arquivo arrastado na janela (ver o dnd_bind em Janela)."""
         caminho = Path(caminho_texto)
         try:
             dados = extrair_dados_requerimento(caminho)
         except ErroValidacao as exc:
+            registrar_erro(f"Carregar requerimento - falha esperada ao ler {caminho}", exc)
             messagebox.showwarning("Não foi possível carregar", str(exc))
+            return
+        except Exception as exc:
+            registrar_erro(f"Carregar requerimento - falha inesperada ao ler {caminho}", exc)
+            messagebox.showerror(
+                "Erro ao carregar",
+                f"Ocorreu um erro inesperado ao ler esse arquivo.\n\nDetalhes salvos em:\n{CAMINHO_LOG}",
+            )
             return
 
         self.entry_nb.delete(0, "end")
@@ -816,6 +841,7 @@ class AbaExigencia:
                 self.frame.after(0, self._gerar_falhou, "Aviso", str(exc), messagebox.showwarning)
                 return
             except Exception as exc:
+                registrar_erro("Gerar - falha inesperada", exc)
                 self.frame.after(0, self._gerar_falhou, "Erro ao gerar", str(exc), messagebox.showerror)
                 return
 
@@ -1414,6 +1440,11 @@ DICAS
 class Janela:
     def __init__(self, root, nome_app: str, descricao_app: str):
         self.root = root
+        # Rede de segurança: qualquer exceção não tratada dentro de um
+        # callback do Tkinter (clique de botão, digitação num campo etc.)
+        # passa por aqui em vez de só imprimir no console (invisível no
+        # .exe empacotado, sem console) e travar/fechar o programa.
+        root.report_callback_exception = self._excecao_nao_tratada
 
         self._montar_banner(root, nome_app, descricao_app)
 
@@ -1433,7 +1464,7 @@ class Janela:
         if caminho_logo.exists():
             self._imagem_logo = _carregar_imagem_altura(caminho_logo, 24)
             tk.Label(rodape, image=self._imagem_logo, borderwidth=0, background=tema.COR_FUNDO).pack(side="left")
-        ttk.Label(rodape, text="versão 3.5", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
+        ttk.Label(rodape, text="versão 3.6", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
 
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=14, pady=(14, 0))
@@ -1447,22 +1478,57 @@ class Janela:
         aba_exigencia = AbaExigencia(notebook)
         notebook.add(aba_exigencia.frame, text="  Cumprimento de exigência  ")
 
-        def _ao_soltar_arquivos(arquivos):
-            # arquivos: lista de caminhos completos (str, unicode) dos itens
-            # arrastados até a janela - só nos interessa requerimento .docx/.pdf,
-            # que é sempre carregado na aba de Cumprimento de Exigência.
-            caminho = next(
-                (a for a in arquivos if Path(a).suffix.lower() in (".docx", ".pdf")), None
-            )
-            if caminho is None:
-                messagebox.showwarning(
-                    "Arquivo não reconhecido", "Solte um requerimento gerado em .docx ou .pdf."
-                )
-                return
-            notebook.select(aba_exigencia.frame)
-            aba_exigencia.carregar_de_caminho(caminho)
+        # Arrastar-e-soltar via tkinterdnd2 em vez do pacote windnd: o windnd
+        # tem um bug real de estouro de buffer (informa pra DragQueryFileW o
+        # tamanho do buffer em BYTES, quando a API espera a contagem de
+        # CARACTERES - metade do valor certo) que estoura a pilha e derruba
+        # o programa (STATUS_STACK_BUFFER_OVERRUN) para qualquer caminho de
+        # arquivo com mais de ~260 caracteres, bem comum em pastas
+        # aninhadas. tkinterdnd2 é a biblioteca padrão/madura pra isso.
+        TkinterDnD._require(root)
+        root.TkdndVersion = TkinterDnD.TkdndVersion
+        if TkinterDnD.DnDWrapper not in type(root).__mro__:
+            root.__class__ = type(type(root).__name__, (type(root), TkinterDnD.DnDWrapper), {})
+        root.drop_target_register(DND_FILES)
 
-        windnd.hook_dropfiles(root, func=_ao_soltar_arquivos, force_unicode=True)
+        def _ao_soltar_arquivos(event):
+            try:
+                # event.data vem no formato de lista do Tcl (caminhos com
+                # espaço ficam entre chaves) - tk.splitlist trata isso certo.
+                arquivos = root.tk.splitlist(event.data)
+                # só nos interessa requerimento .docx/.pdf, sempre carregado
+                # na aba de Cumprimento de Exigência.
+                caminho = next(
+                    (a for a in arquivos if Path(a).suffix.lower() in (".docx", ".pdf")), None
+                )
+                if caminho is None:
+                    messagebox.showwarning(
+                        "Arquivo não reconhecido", "Solte um requerimento gerado em .docx ou .pdf."
+                    )
+                    return "refuse"
+                notebook.select(aba_exigencia.frame)
+                aba_exigencia.carregar_de_caminho(caminho)
+                return "copy"
+            except Exception as exc:
+                registrar_erro(f"Arrastar e soltar - falha inesperada (event.data={event.data!r})", exc)
+                messagebox.showerror(
+                    "Erro ao carregar",
+                    f"Ocorreu um erro inesperado ao processar o arquivo solto.\n\nDetalhes salvos em:\n{CAMINHO_LOG}",
+                )
+                return "refuse"
+
+        root.dnd_bind("<<Drop>>", _ao_soltar_arquivos)
+
+    def _excecao_nao_tratada(self, exc_type, exc_value, exc_tb) -> None:
+        registrar_erro("Erro não tratado numa ação da interface", exc_value)
+        try:
+            messagebox.showerror(
+                "Erro inesperado",
+                f"Ocorreu um erro inesperado:\n\n{exc_value}\n\nDetalhes salvos em:\n{CAMINHO_LOG}",
+                parent=self.root,
+            )
+        except Exception:
+            pass  # não deixa um erro ao mostrar o erro derrubar o programa
 
     def _montar_banner(self, root, nome_app: str, descricao_app: str) -> None:
         self._nome_app = nome_app

@@ -14,3 +14,5 @@ _update_staging/
 _update_backup/
 launcher_log.txt
 *.tmp
+requerid_log.txt
+dados_beneficios/

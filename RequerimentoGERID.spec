@@ -17,7 +17,7 @@ app_datas = list(icone_datas) + [
 ]
 app_binaries = []
 app_hiddenimports = []
-for pacote in ('ttkbootstrap',):
+for pacote in ('ttkbootstrap', 'tkinterdnd2'):
     tmp_ret = collect_all(pacote)
     app_datas += tmp_ret[0]; app_binaries += tmp_ret[1]; app_hiddenimports += tmp_ret[2]
 

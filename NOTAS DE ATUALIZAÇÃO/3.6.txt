@@ -1,0 +1,12 @@
+- Corrigido o fechamento inesperado do programa ao arrastar e soltar um
+  PDF/Word na janela (acontecia principalmente com arquivos vindos de
+  pastas com caminho longo). A biblioteca usada para isso foi trocada
+  por uma mais confiável.
+
+- Erros ao carregar um PDF ou .docx danificado, protegido por senha ou
+  não reconhecido agora mostram um aviso na tela em vez de fechar o
+  programa.
+
+- Novo arquivo de log (requerid_log.txt, na mesma pasta do programa):
+  registra automaticamente qualquer erro inesperado, com data/hora e
+  detalhes técnicos, para facilitar o diagnóstico se algo der errado.

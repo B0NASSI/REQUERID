@@ -423,13 +423,29 @@ def _limpar_numero(valor: str) -> str:
 
 
 def _ler_texto_docx(caminho: Path) -> str:
-    doc = Document(str(caminho))
-    return "\n".join(p.text for p in doc.paragraphs)
+    """Qualquer falha ao abrir/ler (arquivo corrompido, não é realmente um
+    .docx apesar da extensão, protegido por senha etc.) vira ErroValidacao -
+    erro esperado, tratado com uma mensagem amigável pela interface - em vez
+    de propagar e derrubar o programa."""
+    try:
+        doc = Document(str(caminho))
+        return "\n".join(p.text for p in doc.paragraphs)
+    except ErroValidacao:
+        raise
+    except Exception as exc:
+        raise ErroValidacao(f"Não foi possível abrir esse .docx: {exc}") from exc
 
 
 def _ler_texto_pdf(caminho: Path) -> str:
-    leitor = PdfReader(str(caminho))
-    return "\n".join(pagina.extract_text() or "" for pagina in leitor.pages)
+    """Mesma ideia de _ler_texto_docx: PDF corrompido, escaneado sem texto,
+    protegido por senha etc. vira ErroValidacao em vez de derrubar o programa."""
+    try:
+        leitor = PdfReader(str(caminho))
+        return "\n".join(pagina.extract_text() or "" for pagina in leitor.pages)
+    except ErroValidacao:
+        raise
+    except Exception as exc:
+        raise ErroValidacao(f"Não foi possível abrir esse PDF: {exc}") from exc
 
 
 def extrair_dados_requerimento(caminho: Path) -> dict:
