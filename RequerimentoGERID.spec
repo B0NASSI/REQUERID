@@ -17,7 +17,9 @@ app_datas = list(icone_datas) + [
 ]
 app_binaries = []
 app_hiddenimports = []
-for pacote in ('ttkbootstrap', 'tkinterdnd2'):
+# 'requests' aqui porque main.py agora importa funções de launcher.py (checa
+# atualização quando o REQUERID.exe é aberto direto, sem passar pelo launcher)
+for pacote in ('ttkbootstrap', 'tkinterdnd2', 'requests'):
     tmp_ret = collect_all(pacote)
     app_datas += tmp_ret[0]; app_binaries += tmp_ret[1]; app_hiddenimports += tmp_ret[2]
 

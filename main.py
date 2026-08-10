@@ -1,6 +1,8 @@
 import ctypes
 import ctypes.wintypes
+import threading
 import tkinter as tk
+from tkinter import messagebox
 
 import ttkbootstrap as ttk
 
@@ -42,6 +44,35 @@ def _centralizar(root, largura: int, altura: int) -> None:
     root.geometry(f"{largura}x{altura}+{x}+{y}")
 
 
+def _avisar_se_desatualizado(root) -> None:
+    """Rede de segurança para quando o REQUERID.exe é aberto direto, sem
+    passar pelo launcher (ex.: atalho fixado errado na barra de tarefas -
+    "Pin to taskbar" a partir da janela já aberta em vez do atalho da área
+    de trabalho, que fixa o app em vez do launcher). O launcher.py é quem
+    normalmente baixa e aplica a atualização; aqui só avisamos, sem baixar
+    nem travar o uso - e falha em silêncio se não conseguir checar (sem
+    internet, GitHub fora etc.), do mesmo jeito que o launcher já faz."""
+    def _checar():
+        try:
+            from launcher import get_latest_release, is_newer, read_local_version
+            release = get_latest_release()
+            if release is None or not is_newer(release["tag_name"], read_local_version()):
+                return
+        except Exception:
+            return
+        root.after(0, lambda: messagebox.showinfo(
+            "Nova versão disponível",
+            f"Há uma versão mais nova do REQUERID disponível ({release['tag_name']}).\n\n"
+            "Feche o programa e abra pelo atalho da área de trabalho (REQUERID) "
+            "para atualizar automaticamente.\n\n"
+            "Se você fixou o REQUERID na barra de tarefas a partir do app já "
+            "aberto (em vez do atalho da área de trabalho), refixe a partir do "
+            "atalho — assim a atualização automática volta a funcionar.",
+        ))
+
+    threading.Thread(target=_checar, daemon=True).start()
+
+
 if __name__ == "__main__":
     root = ttk.Window(themename="litera", iconphoto=None)
     root.title(NOME_APP)
@@ -57,4 +88,5 @@ if __name__ == "__main__":
 
     janela = Janela(root, NOME_APP, DESCRICAO_APP)  # mantém referência viva (banner/logo dependem disso)
     _centralizar(root, LARGURA_JANELA, ALTURA_JANELA)
+    _avisar_se_desatualizado(root)
     root.mainloop()

@@ -1,0 +1,5 @@
+- Se o REQUERID for aberto direto (sem passar pelo atalho da área de
+  trabalho/launcher) - por exemplo, se o ícone foi fixado na barra de
+  tarefas a partir do app já aberto, em vez do atalho da área de
+  trabalho - o programa agora avisa quando há uma versão mais nova
+  disponível, com instrução de como voltar a atualizar automaticamente.
