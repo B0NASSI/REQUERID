@@ -66,16 +66,14 @@ def _avisar_se_desatualizado(root) -> None:
             release = get_latest_release()
             if release is None or not is_newer(release["tag_name"], read_local_version()):
                 return
-        except Exception:
+        except Exception as exc:
+            logger.info("Checagem de versão (fora do launcher) não pôde ser concluída: %r", exc)
             return
         root.after(0, lambda: messagebox.showinfo(
             "Nova versão disponível",
             f"Há uma versão mais nova do REQUERID disponível ({release['tag_name']}).\n\n"
             "Feche o programa e abra pelo atalho da área de trabalho (REQUERID) "
-            "para atualizar automaticamente.\n\n"
-            "Se você fixou o REQUERID na barra de tarefas a partir do app já "
-            "aberto (em vez do atalho da área de trabalho), refixe a partir do "
-            "atalho — assim a atualização automática volta a funcionar.",
+            "para atualizar automaticamente.",
         ))
 
     threading.Thread(target=_checar, daemon=True).start()

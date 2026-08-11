@@ -1,0 +1,4 @@
+- Corrigido o aviso de versão desatualizada (quando o app é aberto direto,
+  sem passar pelo launcher): ele nunca funcionava, porque o programa
+  excluía do pacote uns componentes internos (email/http) que a checagem
+  de atualização precisa por baixo dos panos. Mensagem também simplificada.

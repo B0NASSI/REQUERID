@@ -34,9 +34,13 @@ a_app = Analysis(
     runtime_hooks=[],
     excludes=[
         'numpy', 'pywinauto', 'adodbapi', 'isapi', 'pythonwin',
-        'setuptools', 'pip', 'unittest', 'email', 'http', 'xmlrpc',
+        'setuptools', 'pip', 'unittest', 'xmlrpc',
         'ftplib', 'multiprocessing',
     ],
+    # 'email' e 'http' NÃO entram aqui (diferente de antes): main.py importa
+    # launcher.py (aviso de versão desatualizada quando aberto sem o
+    # launcher), que usa `requests`, que depende de email/http por baixo -
+    # excluir esses dois quebrava a checagem com ModuleNotFoundError.
     noarchive=False,
     optimize=0,
 )
