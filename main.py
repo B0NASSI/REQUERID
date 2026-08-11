@@ -71,7 +71,7 @@ def _avisar_se_desatualizado(root) -> None:
             return
         root.after(0, lambda: messagebox.showinfo(
             "Nova versão disponível",
-            f"Há uma versão mais nova do REQUERID disponível ({release['tag_name']}).\n\n"
+            "Há uma versão mais nova do REQUERID disponível.\n\n"
             "Feche o programa e abra pelo atalho da área de trabalho (REQUERID) "
             "para atualizar automaticamente.",
         ))
