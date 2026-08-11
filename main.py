@@ -24,6 +24,20 @@ log_setup.configurar_logging("requerid.log", pasta_executavel())
 logger = logging.getLogger(__name__)
 
 
+def _limpar_zips_temporarios() -> None:
+    """Apaga zips de atualização (tmp*.zip) esquecidos pelo launcher em
+    versões antigas (antes da correção que passou a apagá-los sozinho).
+    Fica aqui e não no launcher.py porque o auto-update nunca sobrescreve
+    o launcher.py de quem já tem o app instalado - só REQUERID.exe e
+    _internal/, que é onde este código roda."""
+    for zip_path in pasta_executavel().glob("tmp*.zip"):
+        try:
+            zip_path.unlink()
+            logger.info("Zip temporário de atualização removido: %s", zip_path.name)
+        except OSError as exc:
+            logger.info("Não foi possível remover zip temporário %s: %r", zip_path.name, exc)
+
+
 def _area_util_tela() -> tuple[int, int]:
     """Tamanho da área útil da tela primária, sem a barra de tarefas do
     Windows - pra janela nunca nascer com o rodapé escondido atrás dela em
@@ -100,6 +114,7 @@ def _tratar_erro_callback(root):
 
 if __name__ == "__main__":
     logger.info("REQUERID iniciado.")
+    _limpar_zips_temporarios()
     root = ttk.Window(themename="litera", iconphoto=None)
     root.title(NOME_APP)
     root.resizable(True, True)

@@ -1454,6 +1454,8 @@ class Janela:
         # tratada num callback do Tkinter) é ligado em main.py, onde `root`
         # é criado.
 
+        self._instalar_menu_contexto(root)
+
         self._montar_banner(root, nome_app, descricao_app)
 
         barra_superior = ttk.Frame(root, padding=(14, 6, 14, 0))
@@ -1472,7 +1474,7 @@ class Janela:
         if caminho_logo.exists():
             self._imagem_logo = _carregar_imagem_altura(caminho_logo, 24)
             tk.Label(rodape, image=self._imagem_logo, borderwidth=0, background=tema.COR_FUNDO).pack(side="left")
-        ttk.Label(rodape, text="versão 3.9", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
+        ttk.Label(rodape, text="versão 3.10", bootstyle="secondary", font=("Segoe UI", 8)).pack(side="right")
 
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=14, pady=(14, 0))
@@ -1526,6 +1528,61 @@ class Janela:
                 return "refuse"
 
         root.dnd_bind("<<Drop>>", _ao_soltar_arquivos)
+
+    def _instalar_menu_contexto(self, root) -> None:
+        """Menu de botão direito (Recortar/Copiar/Colar/Selecionar tudo) em
+        todos os campos de texto do aplicativo. Instalado por classe de
+        widget, vale também para os campos de janelas e diálogos abertos
+        depois."""
+        menu = tk.Menu(root, tearoff=0)
+
+        def mostrar(event):
+            w = event.widget
+            try:
+                if str(w.cget("state")) == "disabled":
+                    return
+                w.focus_set()
+            except Exception:
+                return
+
+            try:
+                if isinstance(w, tk.Text):
+                    tem_selecao = bool(w.tag_ranges("sel"))
+                else:
+                    tem_selecao = w.selection_present()
+            except Exception:
+                tem_selecao = False
+            editavel = str(w.cget("state")) == "normal"
+
+            menu.delete(0, "end")
+            menu.add_command(
+                label="Recortar", accelerator="Ctrl+X",
+                state="normal" if tem_selecao and editavel else "disabled",
+                command=lambda: w.event_generate("<<Cut>>"),
+            )
+            menu.add_command(
+                label="Copiar", accelerator="Ctrl+C",
+                state="normal" if tem_selecao else "disabled",
+                command=lambda: w.event_generate("<<Copy>>"),
+            )
+            menu.add_command(
+                label="Colar", accelerator="Ctrl+V",
+                state="normal" if editavel else "disabled",
+                command=lambda: w.event_generate("<<Paste>>"),
+            )
+            menu.add_separator()
+            menu.add_command(
+                label="Selecionar tudo", accelerator="Ctrl+A",
+                command=lambda: w.event_generate("<<SelectAll>>"),
+            )
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+            return "break"
+
+        for classe in ("TEntry", "Entry", "Text", "TSpinbox", "TCombobox"):
+            root.bind_class(classe, "<Button-3>", mostrar)
 
     def _montar_banner(self, root, nome_app: str, descricao_app: str) -> None:
         self._nome_app = nome_app

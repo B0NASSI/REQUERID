@@ -380,6 +380,10 @@ class UpdaterUI:
             self.root.after(0, self.set_status, "Fechando o REQUERID e aplicando a atualização...")
             apply_update(tmp_path, self.release["tag_name"])
             logger.info("Atualização aplicada com sucesso: %s", self.release["tag_name"])
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
             self.root.after(0, self.finish, True, "")
         except Exception as exc:
             log_error("Falha ao baixar/aplicar atualização", exc)

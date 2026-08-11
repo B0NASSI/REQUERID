@@ -1,0 +1,6 @@
+- Novo menu de botão direito nos campos de texto (Recortar/Copiar/Colar/
+  Selecionar tudo) — antes só dava pra usar o teclado (Ctrl+C/Ctrl+V).
+
+- Corrigido acúmulo de arquivos temporários (tmp*.zip) deixados na pasta
+  do programa durante atualizações anteriores. O programa agora limpa
+  isso sozinho ao abrir.
