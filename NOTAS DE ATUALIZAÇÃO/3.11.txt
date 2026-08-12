@@ -1,0 +1,4 @@
+- Corrigido: a versão 3.10 foi publicada por engano com os modelos
+  gerando "xxxxxxxxxxxxxxxxx" no lugar do CPF e da OAB do advogado nos
+  requerimentos e cumprimentos de exigência. Volta a mostrar os dados
+  corretos.
